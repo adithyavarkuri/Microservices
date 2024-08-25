@@ -1,6 +1,7 @@
 package com.user.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -9,6 +10,8 @@ import org.modelmapper.convention.MatchingStrategies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -19,6 +22,8 @@ import org.springframework.web.client.RestTemplate;
 import com.user.dao.AlbumsServiceClient;
 import com.user.dao.UserRepository;
 import com.user.dto.UserDto;
+import com.user.entity.AuthorityEntity;
+import com.user.entity.RoleEntity;
 import com.user.entity.UserEntity;
 import com.user.model.AlbumResponseModel;
 
@@ -67,22 +72,24 @@ UserEntity userEntity = userRepository.findByEmail(username);
 		
 		if(userEntity == null) throw new UsernameNotFoundException(username);	
 		
-		/*
-		 * Collection<GrantedAuthority> authorities = new ArrayList<>();
-		 * Collection<RoleEntity> roles = userEntity.getRoles();
-		 * 
-		 * roles.forEach((role) -> { authorities.add(new
-		 * SimpleGrantedAuthority(role.getName()));
-		 * 
-		 * Collection<AuthorityEntity> authorityEntities = role.getAuthorities();
-		 * authorityEntities.forEach((authorityEntity) -> { authorities.add(new
-		 * SimpleGrantedAuthority(authorityEntity.getName())); }); });
-		 */
+		
+		Collection<GrantedAuthority> authorities = new ArrayList<>();
+		Collection<RoleEntity> roles = userEntity.getRoles();
+
+		roles.forEach((role) -> {
+			authorities.add(new SimpleGrantedAuthority(role.getName()));
+
+			Collection<AuthorityEntity> authorityEntities = role.getAuthorities();
+			authorityEntities.forEach((authorityEntity) -> {
+				authorities.add(new SimpleGrantedAuthority(authorityEntity.getName()));
+			});
+		});
+		 
 		
 		return new User(userEntity.getEmail(), 
 				userEntity.getEncryptedPassword(), 
 				true, true, true, true, 
-				new ArrayList<>());
+				authorities);
 	
 	}
 
@@ -96,7 +103,7 @@ UserEntity userEntity = userRepository.findByEmail(username);
 	
 	}
 	
-public UserDto getUserByUserId(String userId) {
+public UserDto getUserByUserId(String userId, String authorization) {
 		
         UserEntity userEntity = userRepository.findByUserId(userId);     
         if(userEntity == null) throw new UsernameNotFoundException("User not found");
@@ -115,15 +122,15 @@ public UserDto getUserByUserId(String userId) {
 		 * userDto.setAlbums(albumsList);
 		 */
 		
-		// logger.info("Before calling albums Microservice"); List<AlbumResponseModel>
+		 logger.info("Before calling albums Microservice"); 
         //List<AlbumResponseModel> albumsList = albumsServiceClient.getAlbums(userId, authorization);
         try {
         	
         }catch (FeignException e) {
 			logger.error(e.getLocalizedMessage());
 		}
-        List<AlbumResponseModel> albumsList = albumsServiceClient.getAlbums(userId);
-		// logger.info("After calling albums Microservice");
+        List<AlbumResponseModel> albumsList = albumsServiceClient.getAlbums(userId,authorization);
+		 logger.info("After calling albums Microservice");
 		 
 		 
 		

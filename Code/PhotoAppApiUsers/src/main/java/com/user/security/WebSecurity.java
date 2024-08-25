@@ -9,6 +9,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -21,6 +22,7 @@ import com.user.service.UsersService;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled=true)
 public class WebSecurity {
 	
 	public Environment env;
@@ -82,7 +84,8 @@ public class WebSecurity {
 	                            hasIpv4Address.matches(context.getRequest()));
 	                })
 			        .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll())
-		 .addFilter(authenticationFilter)
+		 .addFilter(new AuthorizationFilter(authenticationManager, env )).
+		 addFilter(authenticationFilter)
 		 .authenticationManager(authenticationManager).
 		 sessionManagement((session) -> session
 					        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));;
